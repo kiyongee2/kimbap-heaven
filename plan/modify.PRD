@@ -1,0 +1,94 @@
+# Modify PRD — Kimbap Front UI 수정 이력
+
+## 개요
+Admin 기능 제거 및 Front UI 개선 작업 내역을 정리한 문서입니다.
+
+---
+
+## 1. Admin 제거
+
+### 변경 내용
+- `ui/src/admin/` 디렉토리 전체 삭제 (AdminApp.jsx, Dashboard.jsx, MenuEdit.jsx, MenuManagement.jsx, OrderList.jsx, Statistics.jsx, AdminSettings.jsx, admin.css, adminData.js)
+- `ui/src/main.jsx` 에서 AdminApp import 및 `/admin` 경로 분기 로직 제거
+- `<App />` 단독 렌더링으로 단순화
+
+---
+
+## 2. 메뉴 데이터 교체 (main-menu 폴더 기반)
+
+### 변경 내용
+- 기존 9개 샘플 메뉴 → `main-menu/` 폴더의 실제 메뉴 5개로 교체
+- Excel 파일(`명동김밥천국_대표메뉴_5개_번역_QR등록용.xlsx`) 기반 다국어 번역 적용
+- PNG 이미지 파일을 `ui/public/images/` 로 복사
+
+### 메뉴 목록
+| ID | 한국어 | 영어 | 일본어 | 중국어 | 가격 |
+|----|--------|------|--------|--------|------|
+| 1  | 참치김밥 | Tuna Gimbap | ツナキンパ | 金枪鱼紫菜包饭 | ₩4,000 |
+| 2  | 새우롤김밥 | Shrimp Roll Gimbap | エビフライロールキンパ | 炸虾卷紫菜包饭 | ₩5,500 |
+| 3  | 돈카츠 김밥 | Tonkatsu Gimbap | とんかつキンパ | 炸猪排紫菜包饭 | ₩6,000 |
+| 4  | 갈비탕 | Beef Short Rib Soup | カルビタン | 牛排骨汤 | ₩9,000 |
+| 5  | 비빔밥 | Bibimbap | ビビンバ | 韩式拌饭 | ₩8,000 |
+
+---
+
+## 3. 주문 흐름 변경
+
+### 변경 내용
+- 메뉴 상세 화면의 **"주문에 추가"** 버튼 클릭 시 주문 확인 페이지로 즉시 이동
+- 주문 확인 페이지의 **주문 확정 버튼** 및 완료 애니메이션 제거 (페이지 표시만)
+- `onSave`, `onConfirm` prop 및 관련 핸들러 제거
+
+---
+
+## 4. 다국어(i18n) 개선
+
+### 변경 내용
+- 식단 정보(dietary) 배지가 선택 언어로 표시되지 않던 문제 수정
+- `i18n.js` 에 `allergens`, `dietary` 번역 키 추가 (en/ja/zh/ko 전체)
+
+| 키 | EN | JA | ZH | KO |
+|----|----|----|----|----|
+| allergens.fish | Fish | 魚 | 鱼 | 생선 |
+| allergens.egg | Egg | 卵 | 鸡蛋 | 달걀 |
+| allergens.dairy | Dairy | 乳製品 | 乳制品 | 유제품 |
+| allergens.shellfish | Shellfish | 貝類 | 贝类 | 조개류 |
+| dietary.spicy | 🌶️ Spicy | 🌶️ 辛口 | 🌶️ 辣 | 🌶️ 매움 |
+| dietary.notSpicy | ✅ Not Spicy | ✅ 辛くない | ✅ 不辣 | ✅ 안매움 |
+| dietary.noPork | 🚫 No Pork | 🚫 豚肉なし | 🚫 无猪肉 | 🚫 돼지고기 없음 |
+| dietary.vegan | 🌿 Vegan | 🌿 ビーガン | 🌿 素食 | 🌿 비건 |
+
+---
+
+## 5. UI 요소 제거
+
+### 변경 내용
+- **채식(Vegan) 필터 버튼** 제거 — TAG_CONFIG에서 vegan 항목 삭제
+- **전체 필터 버튼** 제거 (돼지고기 없음 / 소고기 / 매운맛 / 인기) — 필터 UI 및 관련 상태(`activeFilters`, `toggleFilter`) 완전 제거
+- **메뉴 카드 태그 뱃지** 제거 (인기, 돼지고기 없음 등 카드 하단 표시 제거)
+- **즐겨찾기(하트) 버튼** 제거 — 메뉴 상세 헤더 우측 하트 버튼 및 `favorite` 상태 제거
+
+---
+
+## 6. 아이콘 변경
+
+### 변경 내용
+- 뒤로가기 아이콘 `←` → 목록 아이콘 `☰` 으로 변경
+  - 적용 위치: MenuDetail 헤더, OrderSummary 헤더, OrderSummary 빈 카트 버튼
+
+---
+
+## 7. 이미지 표시
+
+### 변경 내용
+- MenuList 카드, MenuDetail 히어로, OrderSummary 아이템 모두 `item.image` 우선 표시
+- `item.image` 없을 경우 `item.emoji` 폴백 처리
+- 이미지 스타일: `objectFit: cover`, `borderRadius: inherit`
+
+---
+
+## 8. 버그 수정
+
+### 하단 네비게이션 가려짐
+- **원인**: `.app`에 `position: relative` + `overflow-x: hidden` 조합 시 WebKit/Blink에서 `position: fixed` 자식이 클리핑됨
+- **수정**: `overflow-x: hidden` → `overflow-x: clip` 으로 변경 (스크롤 컨테이너 생성 없이 시각적 클리핑만 수행)

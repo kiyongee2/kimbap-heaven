@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: kimbap-admin
+
+  # ── PostgreSQL ────────────────────────────────────────────────
+  datasource:
+    url: jdbc:postgresql://localhost:5432/kimbapdb
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: 12345
+
+  jpa:
+    hibernate:
+      ddl-auto: create       # 시작 시 테이블 재생성 (data.sql 항상 유효)
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      mode: always           # data.sql 항상 실행
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.nirvana.kimbap: DEBUG
+    org.springframework.web: INFO

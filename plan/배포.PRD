@@ -1,0 +1,105 @@
+# 배포 PRD — Kimbap Front (Render.com Static Site)
+
+## 개요
+
+이 문서는 Kimbap-front 프로젝트를 Render.com Static Site로 배포하는 절차를 정의한다.
+프로젝트는 React + Vite 기반의 단일 페이지 애플리케이션(SPA)이다.
+
+---
+
+## 기술 스택
+
+| 항목 | 내용 |
+|------|------|
+| 프레임워크 | React 19 + Vite 8 |
+| 빌드 결과물 | `ui/dist/` |
+| 배포 플랫폼 | Render.com (Static Site) |
+| 소스 관리 | GitHub |
+
+---
+
+## 사전 조건
+
+- GitHub 계정 및 원격 레포지토리
+- Render.com 계정 (무료 플랜 가능)
+- Node.js 환경 (로컬 빌드 확인용)
+
+---
+
+## 배포 절차
+
+### 1단계: GitHub 레포지토리 설정
+
+```bash
+cd d:\vibe-coding3\Kimbap-front
+git init
+git add .
+git commit -m "initial commit"
+git remote add origin https://github.com/YOUR_USERNAME/kimbap-front.git
+git push -u origin main
+```
+
+### 2단계: Render.com Static Site 생성
+
+1. [https://render.com](https://render.com) 로그인
+2. **New +** → **Static Site** 선택
+3. GitHub 레포지토리 연결
+4. 아래 설정 입력:
+
+| 항목 | 값 |
+|------|-----|
+| Name | kimbap-front (자유) |
+| Root Directory | `ui` |
+| Build Command | `npm install && npm run build` |
+| Publish Directory | `dist` |
+
+5. **Create Static Site** 클릭
+
+### 3단계: SPA 라우팅 설정 (선택)
+
+React Router 등 클라이언트 사이드 라우팅을 사용하는 경우 `ui/public/_redirects` 파일을 추가한다.
+
+```
+/*    /index.html    200
+```
+
+현재 프로젝트는 단일 페이지 구조로 이 설정 없이도 정상 동작한다.
+
+---
+
+## 자동 재배포
+
+- `main` 브랜치에 커밋이 push되면 Render가 자동으로 재빌드 및 재배포한다.
+- 빌드 로그는 Render 대시보드 → 해당 서비스 → **Logs** 탭에서 확인한다.
+
+---
+
+## 배포 결과
+
+| 항목 | 내용 |
+|------|------|
+| 서비스 URL | `https://kimbap-front.onrender.com` (예시) |
+| 비용 | 무료 플랜 적용 가능 |
+| HTTPS | Render에서 자동 발급 |
+| CDN | Render 글로벌 CDN 자동 적용 |
+
+---
+
+## 환경 변수
+
+현재 프로젝트는 별도의 환경 변수가 없다.
+추후 API 연동 시 Render 대시보드 → **Environment** 탭에서 `VITE_` 접두사로 추가한다.
+
+```
+VITE_API_BASE_URL=https://your-backend.onrender.com
+```
+
+---
+
+## 체크리스트
+
+- [ ] GitHub 레포지토리 생성 및 코드 push 완료
+- [ ] Render Static Site 생성 및 빌드 설정 완료
+- [ ] 첫 배포 성공 확인 (Render 로그)
+- [ ] 배포 URL 접속 및 화면 정상 출력 확인
+- [ ] 자동 재배포 동작 확인 (테스트 커밋 push)
