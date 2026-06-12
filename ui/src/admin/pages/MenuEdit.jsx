@@ -4,7 +4,7 @@ import AdminHeader from '../components/AdminHeader'
 import Toast from '../components/Toast'
 import ConfirmModal from '../components/ConfirmModal'
 
-const API_BASE = 'http://localhost:8080'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 const DEFAULT_FORM = {
   krName: '', image: '', bgColor: '#FFFFFF',

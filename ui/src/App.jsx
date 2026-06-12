@@ -8,7 +8,7 @@ import { saveOrder } from './store/orderStore'
 import './App.css'
 
 const SCREENS = { LANGUAGE: 'language', MENU: 'menu', DETAIL: 'detail', ORDER: 'order' }
-const API_BASE = 'http://localhost:8080'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 function App() {
   const [screen, setScreen] = useState(SCREENS.LANGUAGE)
