@@ -21,7 +21,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "http://localhost:5173",  // Vite dev server
                         "http://localhost:5174",  // Vite dev server (fallback port)
                         "http://localhost:4173",  // Vite preview
-                        "http://localhost:3000"   // 추가 개발 포트
+                        "http://localhost:3000",  // 추가 개발 포트
+                        "https://kimbap-ui-jwvd.onrender.com"  // Render 배포 UI
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")

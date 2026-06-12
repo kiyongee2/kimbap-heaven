@@ -213,23 +213,47 @@ Source	Destination	Action
 
 ## DB Shell 접근 (Render)
 
-### 방법 1: kimbap-db PostgreSQL 서비스 Shell (권장)
-Render 대시보드 → **kimbap-db** → **Shell** 탭 → psql이 기본 제공됨
+> ⚠️ Render **무료 플랜 PostgreSQL에는 Shell 탭이 없다.**  
+> 아래 방법 중 하나를 사용한다.
 
-```sql
--- 바로 SQL 입력 가능
-SELECT id, kr_name, price FROM menus ORDER BY id;
-SELECT * FROM menus WHERE kr_name LIKE '%김밥%';
-SELECT COUNT(*) FROM menus;
-\q  -- 종료
-```
+### 방법 1: kimbap-server Shell 에서 접속 (재배포 후 사용 가능)
 
-### 방법 2: kimbap-server Shell에서 접속
-Dockerfile에 postgresql-client 설치 후 사용 가능 (이미 적용됨):
+Dockerfile에 postgresql-client가 추가되어 있으므로, push 후 재배포되면:
+
+Render → **kimbap-server** → **Shell** 탭:
 
 ```bash
-psql $DATABASE_URL
+# DATABASE_URL은 jdbc:postgresql://... 형식이라 psql에서 직접 사용 불가
+# 아래처럼 환경변수에서 host/db 정보를 조합해 접속
+psql "postgresql://${DB_USERNAME}:${DB_PASSWORD}@$(echo $DATABASE_URL | sed 's|jdbc:postgresql://||')"
 ```
+
+또는 Render → kimbap-server → Environment 탭에서 아래 변수를 추가로 등록:
+
+| Key | Value |
+|-----|-------|
+| `PSQL_URL` | `postgresql://kimbap_user:비밀번호@dpg-xxxx.region.render.com/kimbapdb` |
+
+그 후 Shell에서:
+```bash
+psql $PSQL_URL
+SELECT id, kr_name, price FROM menus ORDER BY id;
+\q
+```
+
+### 방법 2: 로컬에서 External URL로 접속 (psql 로컬 설치 필요)
+
+Render → **kimbap-db** → **Connections** 탭 → **External Database URL** 복사:
+
+```bash
+psql "postgresql://kimbap_user:비밀번호@dpg-xxxx.singapore-postgres.render.com/kimbapdb"
+```
+
+### 방법 3: GUI 툴로 접속 (설치 불필요 — 웹 기반)
+
+[TablePlus](https://tableplus.com) 또는 [DBeaver](https://dbeaver.io) 에서  
+**External Database URL** 의 host / port / user / password / database 정보를 입력해 연결.
+
 
 ### 주문 데이터 관련 안내
 
