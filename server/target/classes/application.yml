@@ -10,6 +10,7 @@ spring:
     password: ${DB_PASSWORD:pw1234}
 
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: ${DDL_AUTO:create}   # Render 배포 후 none 또는 validate 로 변경
     show-sql: true

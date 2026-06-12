@@ -123,10 +123,13 @@ server:
 
 | Key | Value |
 |-----|-------|
-| `DATABASE_URL` | ① 단계에서 복사한 Internal Database URL |
-| `DB_USERNAME` | `postgres` |
+| `DATABASE_URL` | ① 단계 **JDBC Connection String** (`jdbc:postgresql://...` 형식) |
+| `DB_USERNAME` | `kimbap_user` |
 | `DB_PASSWORD` | ① 단계 DB 비밀번호 |
 | `DDL_AUTO` | `create` (최초 배포) → 이후 `none` 또는 `validate` 로 변경 |
+
+> ⚠️ Render PostgreSQL Connections 탭에서 **Internal Database URL** (`postgresql://...`) 이 아닌  
+> **JDBC Connection String** (`jdbc:postgresql://...`) 을 복사해야 한다.
 
 5. **Create Web Service** 클릭
 6. 배포 완료 후 서비스 URL 복사: `https://kimbap-server.onrender.com`
