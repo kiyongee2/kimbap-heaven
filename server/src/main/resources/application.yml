@@ -4,14 +4,14 @@ spring:
 
   # ── PostgreSQL ────────────────────────────────────────────────
   datasource:
-    url: jdbc:postgresql://localhost:5432/kimbapdb
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/kimbapdb}
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: 12345
+    username: ${DB_USERNAME:kimbap_user}
+    password: ${DB_PASSWORD:pw1234}
 
   jpa:
     hibernate:
-      ddl-auto: create       # 시작 시 테이블 재생성 (data.sql 항상 유효)
+      ddl-auto: ${DDL_AUTO:create}   # Render 배포 후 none 또는 validate 로 변경
     show-sql: true
     properties:
       hibernate:
@@ -23,7 +23,7 @@ spring:
       mode: always           # data.sql 항상 실행
 
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 logging:
   level:

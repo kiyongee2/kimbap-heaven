@@ -1,105 +1,237 @@
-# 배포 PRD — Kimbap Front (Render.com Static Site)
+# 배포 PRD — Kimbap Heaven (Render.com 전체 스택)
 
 ## 개요
 
-이 문서는 Kimbap-front 프로젝트를 Render.com Static Site로 배포하는 절차를 정의한다.
-프로젝트는 React + Vite 기반의 단일 페이지 애플리케이션(SPA)이다.
+이 문서는 명동김밥 프로젝트의 전체 스택을 Render.com에 배포하는 절차를 정의한다.  
+배포 순서는 **PostgreSQL → Spring Boot Server → React UI** 이며, 각 단계가 이전 단계의 URL/정보에 의존한다.
 
 ---
 
 ## 기술 스택
 
-| 항목 | 내용 |
-|------|------|
-| 프레임워크 | React 19 + Vite 8 |
-| 빌드 결과물 | `ui/dist/` |
-| 배포 플랫폼 | Render.com (Static Site) |
-| 소스 관리 | GitHub |
+| 레이어 | 기술 | Render 서비스 유형 |
+|--------|------|--------------------|
+| DB | PostgreSQL | Managed PostgreSQL |
+| Backend | Spring Boot 3.3.5 + Java 21 | Web Service |
+| Frontend | React 19 + Vite | Static Site |
 
 ---
 
 ## 사전 조건
 
-- GitHub 계정 및 원격 레포지토리
+- GitHub 계정 및 원격 레포지토리 (전체 모노레포 1개)
 - Render.com 계정 (무료 플랜 가능)
-- Node.js 환경 (로컬 빌드 확인용)
+- Java 21, Maven, Node.js 로컬 설치 (빌드 확인용)
 
 ---
 
 ## 배포 절차
 
-### 1단계: GitHub 레포지토리 설정
+### 0단계: GitHub 레포지토리 설정 (최초 1회)
 
 ```bash
-cd d:\vibe-coding3\Kimbap-front
 git init
 git add .
 git commit -m "initial commit"
-git remote add origin https://github.com/YOUR_USERNAME/kimbap-front.git
+git remote add origin https://github.com/YOUR_USERNAME/kimbap-heaven.git
 git push -u origin main
 ```
 
-### 2단계: Render.com Static Site 생성
+---
+
+## ① PostgreSQL 배포
+
+### 1-1. Render PostgreSQL 생성
 
 1. [https://render.com](https://render.com) 로그인
-2. **New +** → **Static Site** 선택
-3. GitHub 레포지토리 연결
-4. 아래 설정 입력:
+2. **New +** → **PostgreSQL** 선택
+3. 아래 설정 입력:
 
 | 항목 | 값 |
 |------|-----|
-| Name | kimbap-front (자유) |
+| Name | kimbap-db |
+| Database | kimbapdb |
+| User | postgres |
+| Region | Singapore (또는 가장 가까운 지역) |
+| Plan | Free |
+
+4. **Create Database** 클릭
+5. 생성 완료 후 **Connections** 탭에서 아래 값을 복사해 둔다:
+
+| 항목 | 복사할 값 |
+|------|-----------|
+| Internal Database URL | `postgresql://postgres:****@dpg-xxxx/kimbapdb` |
+| External Database URL | 로컬 테스트용 |
+| PSQL Command | 관리용 CLI 접속 |
+
+> ⚠️ **Internal Database URL** 은 같은 Render 리전 내 서비스끼리만 사용 가능하다.  
+> 서버(Web Service)와 DB를 **같은 리전**에 생성해야 한다.
+
+---
+
+## ② Spring Boot Server 배포
+
+### 2-1. application.yml 환경 변수화
+
+`server/src/main/resources/application.yml` 을 아래와 같이 수정하여 환경 변수에서 DB 정보를 읽도록 한다.
+
+```yaml
+spring:
+  application:
+    name: kimbap-admin
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/kimbapdb}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:12345}
+
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:create}
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      mode: always
+
+server:
+  port: ${PORT:8080}
+```
+
+> 변경 후 `git add . && git commit -m "feat: externalize DB config via env vars" && git push`
+
+### 2-2. Render Web Service 생성
+
+1. **New +** → **Web Service** 선택
+2. GitHub 레포지토리 연결
+3. 아래 설정 입력:
+
+| 항목 | 값 |
+|------|-----|
+| Name | kimbap-server |
+| Root Directory | `server` |
+| Runtime | Java |
+| Build Command | `./mvnw clean package -DskipTests` |
+| Start Command | `java -jar target/kimbap-admin-0.0.1-SNAPSHOT.jar` |
+| Plan | Free |
+
+4. **Environment** 탭에서 환경 변수 추가:
+
+| Key | Value |
+|-----|-------|
+| `DATABASE_URL` | ① 단계에서 복사한 Internal Database URL |
+| `DB_USERNAME` | `postgres` |
+| `DB_PASSWORD` | ① 단계 DB 비밀번호 |
+| `DDL_AUTO` | `create` (최초 배포) → 이후 `none` 또는 `validate` 로 변경 |
+
+5. **Create Web Service** 클릭
+6. 배포 완료 후 서비스 URL 복사: `https://kimbap-server.onrender.com`
+
+### 2-3. CORS 확인
+
+`server/src/main/java/com/nirvana/kimbap/config/WebConfig.java` 에서  
+`allowedOrigins` 에 UI 배포 URL(`https://kimbap-front.onrender.com`)이 포함되어 있어야 한다.
+
+```java
+// 예시
+registry.addMapping("/api/**")
+        .allowedOrigins(
+            "http://localhost:5173",
+            "https://kimbap-front.onrender.com"  // ← UI 배포 후 추가
+        );
+```
+
+> UI 배포 URL 확정 후 추가하고 재배포한다.
+
+---
+
+## ③ React UI 배포
+
+### 3-1. API Base URL 환경 변수 설정
+
+`ui/` 루트에 `.env.production` 파일 생성:
+
+```
+VITE_API_BASE_URL=https://kimbap-server.onrender.com
+```
+
+> ② 단계에서 확인한 서버 URL을 입력한다.  
+> `.env.production` 은 `.gitignore` 에서 제외되어 있어야 커밋된다.
+
+### 3-2. Render Static Site 생성
+
+1. **New +** → **Static Site** 선택
+2. GitHub 레포지토리 연결
+3. 아래 설정 입력:
+
+| 항목 | 값 |
+|------|-----|
+| Name | kimbap-front |
 | Root Directory | `ui` |
 | Build Command | `npm install && npm run build` |
 | Publish Directory | `dist` |
 
+4. **Environment** 탭에서 환경 변수 추가:
+
+| Key | Value |
+|-----|-------|
+| `VITE_API_BASE_URL` | `https://kimbap-server.onrender.com` |
+
 5. **Create Static Site** 클릭
 
-### 3단계: SPA 라우팅 설정 (선택)
+### 3-3. SPA 라우팅 설정
 
-React Router 등 클라이언트 사이드 라우팅을 사용하는 경우 `ui/public/_redirects` 파일을 추가한다.
+`ui/public/_redirects` 파일이 존재하는지 확인 (이미 포함되어 있음):
 
 ```
 /*    /index.html    200
 ```
 
-현재 프로젝트는 단일 페이지 구조로 이 설정 없이도 정상 동작한다.
-
 ---
 
 ## 자동 재배포
 
-- `main` 브랜치에 커밋이 push되면 Render가 자동으로 재빌드 및 재배포한다.
-- 빌드 로그는 Render 대시보드 → 해당 서비스 → **Logs** 탭에서 확인한다.
+- `main` 브랜치에 push하면 변경된 서비스가 자동 재빌드된다.
+- 빌드 로그: Render 대시보드 → 해당 서비스 → **Logs** 탭
 
 ---
 
 ## 배포 결과
 
-| 항목 | 내용 |
-|------|------|
-| 서비스 URL | `https://kimbap-front.onrender.com` (예시) |
-| 비용 | 무료 플랜 적용 가능 |
-| HTTPS | Render에서 자동 발급 |
-| CDN | Render 글로벌 CDN 자동 적용 |
+| 서비스 | URL |
+|--------|-----|
+| PostgreSQL | Render 내부 연결만 사용 |
+| Spring Boot API | `https://kimbap-server.onrender.com` |
+| React UI | `https://kimbap-front.onrender.com` |
 
 ---
 
-## 환경 변수
+## 무료 플랜 주의사항
 
-현재 프로젝트는 별도의 환경 변수가 없다.
-추후 API 연동 시 Render 대시보드 → **Environment** 탭에서 `VITE_` 접두사로 추가한다.
-
-```
-VITE_API_BASE_URL=https://your-backend.onrender.com
-```
+- Free Web Service는 **15분 비활성 시 슬립** 상태가 된다. 첫 요청 시 콜드 스타트(~30초) 발생.
+- Free PostgreSQL은 **생성 후 90일** 뒤 자동 삭제된다. 유료 플랜 업그레이드 또는 주기적 백업 필요.
 
 ---
 
 ## 체크리스트
 
-- [ ] GitHub 레포지토리 생성 및 코드 push 완료
-- [ ] Render Static Site 생성 및 빌드 설정 완료
-- [ ] 첫 배포 성공 확인 (Render 로그)
-- [ ] 배포 URL 접속 및 화면 정상 출력 확인
+### PostgreSQL
+- [ ] Render PostgreSQL 생성 완료
+- [ ] Internal Database URL 복사 완료
+
+### Server
+- [ ] `application.yml` 환경 변수화 및 push 완료
+- [ ] Render Web Service 생성 및 환경 변수 설정 완료
+- [ ] 빌드 성공 및 `/api/menus` 응답 확인
+- [ ] CORS 허용 origin에 UI URL 추가 완료
+
+### UI
+- [ ] `VITE_API_BASE_URL` 환경 변수 설정 완료
+- [ ] Render Static Site 생성 및 빌드 성공
+- [ ] 배포 URL 접속 및 메뉴 데이터 로드 확인
 - [ ] 자동 재배포 동작 확인 (테스트 커밋 push)
