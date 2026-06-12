@@ -36,7 +36,7 @@ export default function MenuEdit() {
     const load = async () => {
       try {
         const res = await fetch(`${API_BASE}/api/menus/${id}`)
-        if (!res.ok) throw new Error()
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data = await res.json()
         setForm({
           krName:    data.krName  || '',
@@ -60,8 +60,9 @@ export default function MenuEdit() {
           enabled:   data.enabled ?? true,
         })
         setPreviewUrl(data.image || '')
-      } catch {
-        setToast({ message: '메뉴를 불러올 수 없습니다.', type: 'error' })
+      } catch (err) {
+        console.error('[MenuEdit] load error:', err)
+        setToast({ message: `메뉴 불러오기 실패: ${err.message}`, type: 'error' })
       }
     }
     load()
@@ -136,12 +137,16 @@ export default function MenuEdit() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const errText = await res.text().catch(() => res.status)
+        throw new Error(`${res.status}: ${errText}`)
+      }
       setDirty(false)
       setToast({ message: '저장되었습니다.', type: 'success' })
       setTimeout(() => navigate('/admin/menus'), 1200)
-    } catch {
-      setToast({ message: '저장에 실패했습니다. 다시 시도해주세요.', type: 'error' })
+    } catch (err) {
+      console.error('[MenuEdit] save error:', err)
+      setToast({ message: `저장 실패: ${err.message}`, type: 'error' })
     } finally {
       setSaving(false)
     }
